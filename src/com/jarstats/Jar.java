@@ -1,4 +1,4 @@
-package com.parameterscounter;
+package com.jarstats;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,13 +16,13 @@ import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 
-public class Package {
+public class Jar {
 
 	private String jar;
 	private ArrayList<String> classes;
 	private JarInputStream jarInputStream;
 
-	public Package(String jarName) {
+	public Jar(String jarName) {
 		this.jar = jarName;
 		this.classes = null;
 		this.jarInputStream = null;

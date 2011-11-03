@@ -1,4 +1,4 @@
-package com.parameterscounter;
+package com.jarstats;
 
 import static org.junit.Assert.*;
 
@@ -15,9 +15,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class PackageTest {
+public class JarTest {
 
-	private static Package aKnownPackage;
+	private static Jar aKnownPackage;
 	private static int knownJarNumOfClasses;
 	private static String aKnownClass;
 	private static int knownJarNumOfMethods;
@@ -25,7 +25,7 @@ public class PackageTest {
 
 	@BeforeClass
 	public static void setUp() {
-		aKnownPackage = new Package("junit.jar");
+		aKnownPackage = new Jar("junit.jar");
 		knownJarNumOfClasses = 209;
 		aKnownClass = "junit.textui.TestRunner.class";
 		knownJarNumOfMethods = 96;
