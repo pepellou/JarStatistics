@@ -45,7 +45,8 @@ public class PackageTest {
 		Map<String, Method[]> methods = aKnownPackage.getMethods();
 
 		assertEquals(knownJarNumOfMethods, methods.size());
-//		assertTrue(methods.contains(aKnownMethod));
+		assertTrue(Arrays.asList(methods.get(aKnownClass)).contains(
+				aKnownMethod));
 	}
 
 }
