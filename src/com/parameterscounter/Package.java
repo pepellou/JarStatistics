@@ -2,7 +2,9 @@ package com.parameterscounter;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -18,81 +20,105 @@ public class Package {
 
 	private String jar;
 	private ArrayList<String> classes;
+	private JarInputStream jarInputStream;
 
 	public Package(String jarName) {
 		this.jar = jarName;
 		this.classes = null;
+		this.jarInputStream = null;
 	}
 
-	// Code adapted from:http://www.rgagnon.com/javadetails/java-0513.html
-	public List getClasses() {
+	public List getClasses() throws FileNotFoundException, IOException {
 		if (classes == null) {
 			classes = new ArrayList<String>();
-			try {
-				JarInputStream jarFile = new JarInputStream(
-						new FileInputStream(jar));
-				JarEntry jarEntry = jarFile.getNextJarEntry();
-				while (jarEntry != null) {
-					if (jarEntry.getName().endsWith(".class")) {
-						classes.add(jarEntry.getName().replaceAll("/", "\\."));
-					}
-					jarEntry = jarFile.getNextJarEntry();
+			for (String entry : getJarEntries()) {
+				if (entry.endsWith(".class")) {
+					classes.add(entry.replaceAll("/", "\\."));
 				}
-			} catch (Exception e) {
-				e.printStackTrace();
 			}
 		}
 		return classes;
 	}
 
+	private ArrayList<String> getJarEntries() throws IOException,
+			FileNotFoundException {
+		ArrayList<String> entries = new ArrayList<String>();
+		JarEntry jarEntry;
+		while ((jarEntry = getJarInputStream().getNextJarEntry()) != null) {
+			entries.add(jarEntry.getName());
+		}
+		return entries;
+	}
+
+	private JarInputStream getJarInputStream() throws IOException,
+			FileNotFoundException {
+		if (jarInputStream == null) {
+			jarInputStream = new JarInputStream(new FileInputStream(jar));
+		}
+		return jarInputStream;
+	}
+
 	public Map<String, Method[]> getMethods() throws ClassNotFoundException,
-			IOException {
+			IOException, SecurityException, IllegalArgumentException,
+			NoSuchMethodException, IllegalAccessException,
+			InvocationTargetException {
 		Map<String, Method[]> map = new HashMap<String, Method[]>();
 		for (String className : classes) {
-
-			URLClassLoader clazzLoader;
-			Class clazz;
-			String filePath = "junit.jar";
-			addFile(filePath);
-			filePath = "jar:file://" + filePath + "!/";
-			URL url = new File(filePath).toURL();
-			clazzLoader = new URLClassLoader(new URL[] { url });
-			clazz = clazzLoader.loadClass(className);
-
-			map.put(className, clazz.getMethods());
+			map.put(className, getMethodsOfClass(className));
 		}
 		return map;
 	}
 
-	private void addFile(String filePath) throws MalformedURLException,
-			IOException {
-		addURL(new File(filePath).toURL());
+	private Method[] getMethodsOfClass(String className)
+			throws MalformedURLException, IOException, ClassNotFoundException,
+			SecurityException, IllegalArgumentException, NoSuchMethodException,
+			IllegalAccessException, InvocationTargetException {
+		String filePath = jar;
+		addFileToClassPath(filePath);
+		filePath = "jar:file://" + filePath + "!/";
+		URL url = new File(filePath).toURL();
+		URLClassLoader classLoader = new URLClassLoader(new URL[] { url });
+		Class theClass = classLoader.loadClass(className);
+		return theClass.getMethods();
 	}
 
-	public void addURL(URL u) throws IOException {
-		// URLClassLoader sysLoader = (URLClassLoader)
-		// ClassLoader.getSystemClassLoader();
+	private void addFileToClassPath(String filePath)
+			throws MalformedURLException, IOException, SecurityException,
+			IllegalArgumentException, NoSuchMethodException,
+			IllegalAccessException, InvocationTargetException {
+		addURLToClassPath(new File(filePath).toURL());
+	}
+
+	public void addURLToClassPath(URL url) throws IOException,
+			SecurityException, NoSuchMethodException, IllegalArgumentException,
+			IllegalAccessException, InvocationTargetException {
 		URLClassLoader sysLoader = (URLClassLoader) this.getClass()
 				.getClassLoader();
-		URL urls[] = sysLoader.getURLs();
-		for (int i = 0; i < urls.length; i++) {
-			if (urls[i].toString().toLowerCase()
-					.equals(u.toString().toLowerCase())) {
-				System.err.println("URL " + u + " is already in the CLASSPATH");
-				return;
+		if (alreadyInClassPath(url, sysLoader))
+			return;
+		Class<?> sysclass = URLClassLoader.class;
+		Method method = sysclass.getDeclaredMethod("addURL",
+				new Class[] { URL.class });
+		method.setAccessible(true);
+		method.invoke(sysLoader, new Object[] { url });
+	}
+
+	private boolean alreadyInClassPath(URL url, URLClassLoader sysLoader) {
+		URL urlsInClassPath[] = sysLoader.getURLs();
+		for (int i = 0; i < urlsInClassPath.length; i++) {
+			if (urlsAreEquals(url, urlsInClassPath[i])) {
+				return true;
 			}
 		}
-		Class<?> sysclass = URLClassLoader.class;
-		try {
-			Method method = sysclass.getDeclaredMethod("addURL",
-					new Class[] { URL.class });
-			method.setAccessible(true);
-			method.invoke(sysLoader, new Object[] { u });
-		} catch (Throwable t) {
-			t.printStackTrace();
-			throw new IOException(
-					"Error, could not add URL to system classloader");
-		}
+		return false;
+	}
+
+	private boolean urlsAreEquals(URL url1, URL url2) {
+		return normalizeUrl(url1).equals(normalizeUrl(url2));
+	}
+
+	private String normalizeUrl(URL url1) {
+		return url1.toString().toLowerCase();
 	}
 
 }
