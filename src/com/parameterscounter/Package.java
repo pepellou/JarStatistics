@@ -1,20 +1,26 @@
+package com.parameterscounter;
+
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 
-public class ParametersCounter {
+public class Package {
+
+	private String jar;
+
+	public Package(String jarName) {
+		this.jar = jarName;
+	}
 
 	// Code adapted from:http://www.rgagnon.com/javadetails/java-0513.html
-	public static List getClasseNamesInPackage(String jarName,
-			String packageName) {
+	public List getClasses() {
 		ArrayList classes = new ArrayList();
 
-		packageName = packageName.replaceAll("\\.", "/");
 		try {
-			JarInputStream jarFile = new JarInputStream(new FileInputStream(
-					jarName));
+			JarInputStream jarFile = new JarInputStream(
+					new FileInputStream(jar));
 			JarEntry jarEntry;
 
 			while (true) {
@@ -22,8 +28,7 @@ public class ParametersCounter {
 				if (jarEntry == null) {
 					break;
 				}
-				if ((jarEntry.getName().startsWith(packageName))
-						&& (jarEntry.getName().endsWith(".class"))) {
+				if (jarEntry.getName().endsWith(".class")) {
 					classes.add(jarEntry.getName().replaceAll("/", "\\."));
 				}
 			}
